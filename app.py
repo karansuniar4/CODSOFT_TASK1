@@ -105,13 +105,33 @@ else:
         )
         st.stop()
 
+
+# Keep customer management separate from the original sample dataset.
+managed_path = os.path.join(
+    os.path.dirname(__file__), "data", "managed_customers.csv"
+)
+
+if "managed_customers" not in st.session_state:
+    if os.path.isfile(managed_path):
+        st.session_state.managed_customers = pd.read_csv(managed_path)
+    else:
+        st.session_state.managed_customers = original.copy()
+
+# Use the working customer dataset throughout the dashboard.
+original = st.session_state.managed_customers.copy()
 cleaned = clean_frame(original)
 rows_before, rows_after = len(original), len(cleaned)
 duplicate_count = int(original.duplicated().sum())
 missing_before = int(original.replace(r"^\s*$", pd.NA, regex=True).isna().sum().sum())
 missing_after = int(cleaned.isna().sum().sum())
 
-tab1, tab2, tab3, tab4 = st.tabs(["Overview", "Explore data", "Cleaning report", "Export"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "Overview",
+    "Explore data",
+    "Cleaning report",
+    "Export",
+    "Manage customers"
+])
 
 with tab1:
     st.subheader("Data quality at a glance")
@@ -205,3 +225,92 @@ with tab4:
 
 st.divider()
 st.caption("CleanSight · Learning project · Always keep a copy of your original dataset.")
+
+
+with tab5:
+    st.subheader("Customer Management")
+    st.write("Add customers, remove records, and save your changes.")
+
+    customers = st.session_state.managed_customers
+
+    st.markdown("### Current customers")
+    st.dataframe(customers, use_container_width=True, hide_index=True)
+
+    st.markdown("### Add a customer")
+
+    with st.form("add_customer_form", clear_on_submit=True):
+        new_customer = {}
+
+        for col in customers.columns:
+            if pd.api.types.is_numeric_dtype(customers[col]):
+                valid = pd.to_numeric(customers[col], errors="coerce").dropna()
+                default = float(valid.median()) if not valid.empty else 0.0
+
+                new_customer[col] = st.number_input(
+                    col,
+                    value=default,
+                    key=f"new_{col}"
+                )
+            else:
+                new_customer[col] = st.text_input(
+                    col,
+                    key=f"new_{col}"
+                )
+
+        add_clicked = st.form_submit_button("Add customer")
+
+    if add_clicked:
+        new_row = pd.DataFrame([new_customer])
+        st.session_state.managed_customers = pd.concat(
+            [customers, new_row],
+            ignore_index=True
+        )
+        st.success("Customer added to the working dataset.")
+        st.rerun()
+
+    st.markdown("### Remove a customer")
+
+    if not customers.empty:
+        selected_row = st.selectbox(
+            "Select the row number to remove",
+            options=list(range(len(customers))),
+            format_func=lambda i: (
+                f"Row {i + 1} — "
+                + ", ".join(
+                    str(customers.iloc[i][c])
+                    for c in customers.columns[:2]
+                )
+            )
+        )
+
+        if st.button("Remove selected customer", type="secondary"):
+            st.session_state.managed_customers = (
+                customers.drop(customers.index[selected_row])
+                .reset_index(drop=True)
+            )
+            st.success("Customer removed.")
+            st.rerun()
+    else:
+        st.info("There are no customers to remove.")
+
+    st.markdown("### Save customer data")
+
+    if st.button("Save changes to CSV", type="primary"):
+        os.makedirs(os.path.dirname(managed_path), exist_ok=True)
+        st.session_state.managed_customers.to_csv(
+            managed_path,
+            index=False,
+            encoding="utf-8-sig"
+        )
+        st.success(f"Customer data saved to: {managed_path}")
+
+    csv_data = st.session_state.managed_customers.to_csv(
+        index=False
+    ).encode("utf-8-sig")
+
+    st.download_button(
+        "Download customer data",
+        data=csv_data,
+        file_name="managed_customers.csv",
+        mime="text/csv"
+    )
