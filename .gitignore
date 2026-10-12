@@ -1,9 +1,12 @@
 # Python
+
 __pycache__/
 *.py[cod]
 .venv/
 venv/
 .env
+.streamlit/secrets.toml
+.DS_Store
 
 # Generated outputs (keep output/.gitkeep)
 output/*

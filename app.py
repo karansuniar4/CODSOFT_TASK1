@@ -36,7 +36,11 @@ with st.sidebar:
 
 @st.cache_data(show_spinner=False)
 def load_csv(data):
-    return pd.read_csv(io.BytesIO(data))
+    return pd.read_csv(
+        io.BytesIO(data),
+        encoding="utf-8-sig",
+        on_bad_lines="error"
+    )
 
 def clean_frame(source):
     df = source.copy()
@@ -88,8 +92,18 @@ if uploaded:
         st.stop()
 else:
     st.info("Upload your own CSV using the sidebar, or start with the included sample dataset.")
-    sample_path = os.path.join(os.path.dirname(__file__), "data", "messy_customers.csv")
-    original = pd.read_csv(sample_path)
+    sample_path = os.path.join(
+        os.path.dirname(__file__), "data", "messy_customers.csv"
+    )
+
+    if os.path.isfile(sample_path):
+        original = pd.read_csv(sample_path)
+    else:
+        st.error(
+            "Sample dataset not found. Please add "
+            "data/messy_customers.csv or upload a CSV file."
+        )
+        st.stop()
 
 cleaned = clean_frame(original)
 rows_before, rows_after = len(original), len(cleaned)
@@ -117,7 +131,10 @@ with tab2:
     profile = pd.DataFrame({
         "Column": original.columns,
         "Data type": [str(original[c].dtype) for c in original.columns],
-        "Missing values": [int(original[c].isna().sum()) for c in original.columns],
+        "Missing values": [
+    int(original[c].replace(r"^\s*$", pd.NA, regex=True).isna().sum())
+    for c in original.columns
+],
         "Unique values": [int(original[c].nunique(dropna=True)) for c in original.columns],
     })
     st.dataframe(profile, use_container_width=True, hide_index=True)
@@ -126,7 +143,11 @@ with tab2:
         chosen = st.selectbox("Choose a numeric column to chart", numeric_cols)
         series = cleaned[chosen].dropna()
         if not series.empty:
-            st.bar_chart(series.value_counts().sort_index().head(40))
+            st.bar_chart(
+    series.value_counts().sort_index().head(40),
+    x_label=chosen,
+    y_label="Frequency"
+)
         else:
             st.warning("No numeric values available for this column.")
     else:
