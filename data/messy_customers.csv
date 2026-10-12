@@ -1,0 +1,9 @@
+CustomerID,Name,Age,City,Email,PurchaseAmount
+1001,  Asha Sharma ,24,Delhi,asha@example.com,1200.50
+1002,Rahul Verma,thirty,mumbai ,rahul@example.com,850
+1003,Meera Singh,,Pune,meera@example.com,650.00
+1004,Kabir Das,29,DELHI,,990
+1004,Kabir Das,29,DELHI,,990
+1005,  Nisha Rao,22,Bengaluru,nisha@example.com,not available
+1006,Arjun Patel,41, Ahmedabad,arjun@example.com,1500
+1007,Sana Khan,19,mumbai,sana@example.com,0

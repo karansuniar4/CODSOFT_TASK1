@@ -1,0 +1,5 @@
+{
+  "python.terminal.activateEnvironment": true,
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true
+}
